@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    分类列表
+    菜品列表
     <div class="search-div">
       <el-form label-width="70px" size="small">
         <el-row>
@@ -43,8 +43,9 @@
       stripe
       border
       style=" width: 100%; margin-top: 10px;"
-      @selection-change="handleSelectionChange">
+    @selection-change="handleSelectionChange">
       <el-table-column type="selection"/>
+
       <el-table-column
         label="序号"
         width="70"
@@ -54,26 +55,36 @@
         </template>
       </el-table-column>
 
-      <el-table-column prop="name" label="分类名称" width="190"/>
-      <el-table-column
-        prop="type"
-        label="标签"
-        width="150"
-        :filters="[{ text: '菜品', value: 1 }, { text: '套餐', value: 2 }]"
-        :filter-method="filterTag"
-        filter-placement="bottom-end">
-        <template slot-scope="scope">
-          <el-tag
-            type="primary" v-if="scope.row.type === 1"
-            disable-transitions>菜品</el-tag>
-          <el-tag
-            type="success" v-else
-            disable-transitions>套餐</el-tag>
+      <el-table-column prop="name" label="菜品名称" width="180"/>
+      <el-table-column prop="price" label="售价(元)" width="120"></el-table-column>
+      <el-table-column prop="image" label="图片" align="center">
+        <template slot-scope="{ row }">
+          <el-image style="width: auto; height: 40px; border:none; cursor: pointer;"
+                    :src="getImage(row.image)"
+                    :preview-src-list="[ `dev-api/common/download?name=${row.image}` ]" >
+            <div slot="error" class="image-slot">
+              <img src="@/icons/noImg.png"  style="width: auto; height: 40px; border:none;" >
+            </div>
+          </el-image>
         </template>
       </el-table-column>
-<!--      <el-table-column prop="createUser" label="创建人" width="110" />-->
-<!--      <el-table-column prop="updateUser" label="修改人" width="110" />-->
-      <el-table-column label="状态" width="120">
+      <!--      <el-table-column-->
+<!--        prop="type"-->
+<!--        label="标签"-->
+<!--        width="110"-->
+<!--        :filters="[{ text: '菜品', value: 1 }, { text: '套餐', value: 2 }]"-->
+<!--        :filter-method="filterTag"-->
+<!--        filter-placement="bottom-end">-->
+<!--        <template slot-scope="scope">-->
+<!--          <el-tag-->
+<!--            type="primary" v-if="scope.row.type === 1"-->
+<!--            disable-transitions>菜品</el-tag>-->
+<!--          <el-tag-->
+<!--            type="success" v-else-->
+<!--            disable-transitions>套餐</el-tag>-->
+<!--        </template>-->
+<!--      </el-table-column>-->
+      <el-table-column label="售卖状态" width="100">
         <template slot-scope="scope">
           <el-switch
             v-model="scope.row.status === 1"
@@ -81,8 +92,8 @@
           </el-switch>
         </template>
       </el-table-column>
-      <el-table-column prop="createTime" label="创建时间" width="220px" />
-      <el-table-column prop="updateTime" label="修改时间" width="220px" />
+      <el-table-column prop="createTime" label="创建时间" width="180px" />
+      <el-table-column prop="updateTime" label="修改时间" width="180px" />
       <el-table-column label="操作"  align="center" fixed="right">
         <template slot-scope="scope">
           <el-button type="primary" icon="el-icon-edit" size="mini" @click="edit(scope.row.id)" title="修改"/>
@@ -106,11 +117,34 @@
         <el-form-item label="类型名称" prop="name">
           <el-input v-model="sysUser.name"/>
         </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="sysUser.type" placeholder="请选择类型">
-            <el-option label="菜品" value="1"></el-option>
-            <el-option label="套餐" value="2"></el-option>
-          </el-select>
+        <el-form-item label="价格" prop="price">
+          <el-input v-model="sysUser.price"></el-input>
+        </el-form-item>
+<!--        <el-form-item label="类型">-->
+<!--          <el-select v-model="sysUser.type" placeholder="请选择类型">-->
+<!--            <el-option label="菜品" value="1"></el-option>-->
+<!--            <el-option label="套餐" value="2"></el-option>-->
+<!--          </el-select>-->
+<!--        </el-form-item>-->
+        <el-form-item
+          label="菜品图片:"
+          prop="image"
+          class="uploadImg"
+        >
+          <el-upload
+            class="avatar-uploader"
+            :action="uploadUrl"
+            :headers="{ 'token': token }"
+            :show-file-list="false"
+            :on-success="handleAvatarSuccess"
+            :before-upload="beforeAvatarUpload"
+            ref="upload">
+            <img v-if="imageUrl" :src="imageUrl"  class="avatar"alt=""/>
+            <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+          </el-upload>
+        </el-form-item>
+        <el-form-item label="商品描述" prop="description">
+          <el-input v-model="sysUser.description"/>
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
@@ -121,7 +155,7 @@
   </div>
 </template>
 <script>
-import api from '@/api/dish/category'
+import api from '@/api/dish/dish'
 import {mapGetters} from "vuex";
 const defaultForm = {
   id: '',
@@ -130,28 +164,33 @@ const defaultForm = {
   name: '',
   type:'',
   status: 1,
+  description:'',
+  image:'',
+  price:''
 }
 export default {
   data(){
     return{
+      token:  localStorage.getItem('token'),
       listLoading: false, // 数据是否正在加载
       list: null, // banner列表
       total: 0, // 数据库中的总记录数
       page: 1, // 默认页码
       limit: 10, // 每页记录数
+      imageUrl:'',
       searchObj: {}, // 查询表单对象
       createTimes: [],
       updateTimes:[],
       dialogVisible: false,
       sysUser: defaultForm,
-
       dialogRoleVisible: false,
       allRoles: [], // 所有角色列表
       userRoleIds: [], // 用户的角色ID的列表
       isIndeterminate: false, // 是否是不确定的
       checkAll: false, // 是否全选
-      selectValue:'',
+      selectValue:[], //复选框选择的内容封装的数组
       addUser: false,
+      uploadUrl: `dev-api/common/upload`,
       options: [{
         value: '2',
         label: '套餐'
@@ -179,6 +218,27 @@ export default {
       this.selectValue = selection
       // console.log(this.selectValue)
     },
+    getImage (image) {
+      return `dev-api/common/download?name=${image}`
+    },
+    handleAvatarSuccess(res, file) {
+      this.imageUrl = `dev-api/common/download?name=${res.data}`
+      this.sysUser.image = res.data
+    },
+    beforeAvatarUpload(file) {
+      const suffix = file.name.split('.')[1]
+      const size = file.size / 1024 / 1024 < 2
+      if (['png', 'jpeg', 'jpg'].indexOf(suffix) < 0) {
+        this.$message.error('上传图片只支持 png、jpeg、jpg 格式！')
+        this.$refs.upload.clearFiles()
+        return false
+      }
+      if (!size) {
+        this.$message.error('上传文件大小不能超过 2MB!')
+        return false
+      }
+      return file
+    },
     handleSizeChange (val) {
       this.limit = val
       this.fetchData();
@@ -186,9 +246,6 @@ export default {
     handleCurrentChange (val) {
       this.page = val
       this.fetchData();
-    },
-    filterTag(value, row) {
-     return row.type === value;
     },
     //列表方法
     fetchData() {
@@ -218,7 +275,6 @@ export default {
     add(){
       this.dialogVisible = true
       this.sysUser = {}
-      this.addUser = true
     },
     //保存添加或者修改
     saveOrUpdate(){
@@ -287,7 +343,6 @@ export default {
         }
       })
     },
-
     // 批量删除
     batchRemove(){
       if (this.selectValue.length == 0){
@@ -333,8 +388,31 @@ export default {
 .tools-div {
   margin-top: 10px;padding:10px;border: 1px solid #EBEEF5;border-radius:3px;
 }
- .pageList {
+.pageList {
   text-align: center;
   margin-top: 30px;
+}
+.avatar-uploader .el-upload {
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.avatar-uploader .el-upload:hover {
+  border-color: #409EFF;
+}
+.avatar-uploader-icon {
+  font-size: 28px;
+  color: #8c939d;
+  width: 178px;
+  height: 178px;
+  line-height: 178px;
+  text-align: center;
+}
+.avatar {
+  width: 178px;
+  height: 178px;
+  display: block;
 }
 </style>

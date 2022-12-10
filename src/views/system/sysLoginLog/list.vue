@@ -76,13 +76,14 @@
 
     <!-- 分页组件 -->
     <el-pagination
-      :current-page="page"
-      :total="total"
+      class="pageList"
+      :page-sizes="[10, 20, 30, 40]"
       :page-size="limit"
-      style="padding: 30px 0; text-align: center;"
-      layout="total, prev, pager, next, jumper"
-      @current-change="fetchData"
-    />
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="total"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+    ></el-pagination>
 
 <!--    <el-dialog title="添加/修改" :visible.sync="dialogVisible" width="40%" >-->
 <!--      <el-form ref="dataForm" :model="sysUser"  label-width="100px" size="small" style="padding-right: 40px;">-->
@@ -135,7 +136,7 @@ export default {
       list: null, // banner列表
       total: 0, // 数据库中的总记录数
       page: 1, // 默认页码
-      limit: 3, // 每页记录数
+      limit: 10, // 每页记录数
       searchObj: {}, // 查询表单对象
 
       createTimes: [],
@@ -154,10 +155,17 @@ export default {
     this.fetchData()
   },
   methods:{
+    handleSizeChange (val) {
+      this.limit = val
+      this.fetchData();
+    },
+    handleCurrentChange (val) {
+      this.page = val
+      this.fetchData();
+    },
     //列表方法
-    fetchData(page = 1) {
+    fetchData() {
       debugger
-      this.page = page
       if(this.createTimes && this.createTimes.length === 2) {
         this.searchObj.createTimeBegin = this.createTimes[0]
         this.searchObj.createTimeEnd = this.createTimes[1]

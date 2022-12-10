@@ -38,7 +38,7 @@
         border
         style="width: 100%;margin-top: 10px;"
         @selection-change="handleSelectionChange">
-        <el-table-column type="selection"/>-
+        <el-table-column type="selection"/>
         <el-table-column
           label="序号"
           width="70"
@@ -62,13 +62,14 @@
 
     <!-- 分页组件 -->
     <el-pagination
-      :current-page="page"
-      :total="total"
+      class="pageList"
+      :page-sizes="[10, 20, 30, 40]"
       :page-size="limit"
-      style="padding: 30px 0; text-align: center;"
-      layout="total, prev, pager, next, jumper"
-      @current-change="fetchData"
-    />
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="total"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+    ></el-pagination>
     <!-- 添加弹框 -->
     <el-dialog title="添加/修改" :visible.sync="dialogVisible" width="40%" >
       <el-form ref="dataForm" :model="sysRole" label-width="150px" size="small" style="padding-right: 40px;">
@@ -97,7 +98,7 @@ export default {
       list:[], //角色列表数组
       total:0,//总记录数
       page:1,//当前页数
-      limit:3,//每页显示记录数
+      limit:10,//每页显示记录数
       searchObj:{},//条件查询封装对象
 
       dialogVisible: false, //弹出框
@@ -113,6 +114,14 @@ export default {
   },
   //具体方法
   methods:{
+    handleSizeChange (val) {
+      this.limit = val
+      this.fetchData();
+    },
+    handleCurrentChange (val) {
+      this.page = val
+      this.fetchData();
+    },
     //重置
     resetData(){
       //清空表单
@@ -122,8 +131,7 @@ export default {
     },
     //条件分页查询列表方法
     //pageNum 查询页数
-    fetchData(pageNum=1){
-      this.page = pageNum
+    fetchData(){
       api.getPageList(this.page,this.limit,this.searchObj)
          .then(response => {
            this.listLoading = false

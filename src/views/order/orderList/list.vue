@@ -1,12 +1,12 @@
 <template>
   <div class="app-container">
-  用户列表
+    订单列表
     <div class="search-div">
       <el-form label-width="70px" size="small">
         <el-row>
           <el-col :span="8">
             <el-form-item label="关 键 字">
-              <el-input style="width: 95%" v-model="searchObj.keyword" placeholder="用户名/姓名/手机号码"></el-input>
+              <el-input style="width: 95%" v-model="searchObj.keyword" placeholder="分类"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -41,7 +41,7 @@
       :data="list"
       stripe
       border
-      style="width: 100%;margin-top: 10px;">
+      style=" width: 100%; margin-top: 10px;">
 
       <el-table-column
         label="序号"
@@ -51,11 +51,59 @@
           {{ (page - 1) * limit + scope.$index + 1 }}
         </template>
       </el-table-column>
+      <el-table-column prop="number" label="订单号" width="180"/>
+      <el-table-column prop="phone" label="电话" width="140"/>
+      <el-table-column prop="user_name" label="用户名" width="120"/>
+      <el-table-column
+        prop="type"
+        label="标签"
+        width="150"
+        :filters="[{ text: '未支付', value: 0 },{ text: '微信', value: 1 }, { text: '支付宝', value: 2 }]"
+        :filter-method="filterTag"
+        filter-placement="bottom-end">
+        <template slot-scope="scope">
+          <el-tag
+            type="primary" v-if="scope.row.payMethod === 0"
+            disable-transitions>未支付</el-tag>
+          <el-tag
+            type="success" v-if="scope.row.payMethod === 1"
+            disable-transitions>微信</el-tag>
+          <el-tag
+            type="success" v-else
+            disable-transitions>支付宝</el-tag>
+        </template>
+      </el-table-column>
 
-      <el-table-column prop="username" label="用户名" width="180"/>
-      <el-table-column prop="name" label="姓名" width="110"/>
-      <el-table-column prop="phone" label="手机" />
-      <el-table-column label="状态" width="80">
+      <!--      <el-table-column prop="image" label="图片" align="center">-->
+      <!--        <template slot-scope="{ row }">-->
+      <!--          <el-image style="width: auto; height: 40px; border:none;cursor: pointer;"-->
+      <!--                    :src="row.image"-->
+      <!--                    :preview-src-list="[ `/common/download?name=${row.image}` ]" >-->
+      <!--            &lt;!&ndash;            <div slot="error" class="image-slot">&ndash;&gt;-->
+      <!--            &lt;!&ndash;              <img src="./../../images/noImg.png"  style="width: auto; height: 40px; border:none;" >&ndash;&gt;-->
+      <!--            &lt;!&ndash;            </div>&ndash;&gt;-->
+      <!--          </el-image>-->
+      <!--        </template>-->
+      <!--      </el-table-column>-->
+      <!--      <el-table-column-->
+      <!--        prop="type"-->
+      <!--        label="标签"-->
+      <!--        width="110"-->
+      <!--        :filters="[{ text: '菜品', value: 1 }, { text: '套餐', value: 2 }]"-->
+      <!--        :filter-method="filterTag"-->
+      <!--        filter-placement="bottom-end">-->
+      <!--        <template slot-scope="scope">-->
+      <!--          <el-tag-->
+      <!--            type="primary" v-if="scope.row.type === 1"-->
+      <!--            disable-transitions>菜品</el-tag>-->
+      <!--          <el-tag-->
+      <!--            type="success" v-else-->
+      <!--            disable-transitions>套餐</el-tag>-->
+      <!--        </template>-->
+      <!--      </el-table-column>-->
+      <!--      <el-table-column prop="createUser" label="创建人" width="110" />-->
+      <!--      <el-table-column prop="updateUser" label="修改人" width="110" />-->
+      <el-table-column label="状态" width="120">
         <template slot-scope="scope">
           <el-switch
             v-model="scope.row.status === 1"
@@ -63,13 +111,12 @@
           </el-switch>
         </template>
       </el-table-column>
-      <el-table-column prop="createTime" label="创建时间" />
-
+      <el-table-column prop="createTime" label="创建时间" width="165px" />
+      <el-table-column prop="updateTime" label="修改时间" width="165px" />
       <el-table-column label="操作"  align="center" fixed="right">
         <template slot-scope="scope">
           <el-button type="primary" icon="el-icon-edit" size="mini" @click="edit(scope.row.id)" title="修改"/>
           <el-button type="danger" icon="el-icon-delete" size="mini" @click="removeDataById(scope.row.id)" title="删除" />
-          <el-button type="warning" icon="el-icon-baseball" size="mini" @click="showAssignRole(scope.row)" title="分配角色"/>
         </template>
       </el-table-column>
     </el-table>
@@ -86,17 +133,14 @@
     ></el-pagination>
     <el-dialog title="添加/修改" :visible.sync="dialogVisible" width="40%" >
       <el-form ref="dataForm" :model="sysUser"  label-width="100px" size="small" style="padding-right: 40px;">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="sysUser.username"/>
-        </el-form-item>
-        <el-form-item v-if="!sysUser.id" label="密码" prop="password">
-          <el-input v-model="sysUser.password" type="password"/>
-        </el-form-item>
-        <el-form-item label="姓名" prop="name">
+        <el-form-item label="类型名称" prop="name">
           <el-input v-model="sysUser.name"/>
         </el-form-item>
-        <el-form-item label="手机" prop="phone">
-          <el-input v-model="sysUser.phone"/>
+        <el-form-item label="类型">
+          <el-select v-model="sysUser.type" placeholder="请选择类型">
+            <el-option label="菜品" value="1"></el-option>
+            <el-option label="套餐" value="2"></el-option>
+          </el-select>
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
@@ -104,37 +148,23 @@
         <el-button type="primary" icon="el-icon-check" @click="saveOrUpdate()" size="small">确 定</el-button>
       </span>
     </el-dialog>
-    <el-dialog title="分配角色" :visible.sync="dialogRoleVisible">
-      <el-form label-width="80px">
-        <el-form-item label="用户名">
-          <el-input disabled :value="sysUser.username"></el-input>
-        </el-form-item>
-
-        <el-form-item label="角色列表">
-          <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange">全选</el-checkbox>
-          <div style="margin: 15px 0;"></div>
-          <el-checkbox-group v-model="userRoleIds" @change="handleCheckedChange">
-            <el-checkbox v-for="role in allRoles" :key="role.id" :label="role.id">{{role.roleName}}</el-checkbox>
-          </el-checkbox-group>
-        </el-form-item>
-      </el-form>
-      <div slot="footer">
-        <el-button type="primary" @click="assignRole" size="small">保存</el-button>
-        <el-button @click="dialogRoleVisible = false" size="small">取消</el-button>
-      </div>
-    </el-dialog>
   </div>
 </template>
 <script>
-import api from '@/api/system/user'
-import roleApi from '@/api/system/role'
+import api from '@/api/order/order'
+import apiDetail from '@/api/order/orderDetail'
+import {mapGetters} from "vuex";
 const defaultForm = {
   id: '',
-  username: '',
-  password: '',
-  name: '',
-  phone: '',
-  status: 1
+  number:'',
+  payMethod: '',
+  amount: '',
+  remark:'',
+  userName:'',
+  phone:'',
+  address:'',
+  consignee:'',
+  status: '',//订单状态 1待付款，2待派送，3已派送，4已完成，5已取消
 }
 export default {
   data(){
@@ -145,9 +175,8 @@ export default {
       page: 1, // 默认页码
       limit: 10, // 每页记录数
       searchObj: {}, // 查询表单对象
-
       createTimes: [],
-
+      updateTimes:[],
       dialogVisible: false,
       sysUser: defaultForm,
 
@@ -155,14 +184,36 @@ export default {
       allRoles: [], // 所有角色列表
       userRoleIds: [], // 用户的角色ID的列表
       isIndeterminate: false, // 是否是不确定的
-      checkAll: false // 是否全选
+      checkAll: false, // 是否全选
+      addUser: false,
+      options: [{
+        value: '2',
+        label: '支付宝'
+      }, {
+        value: '1',
+        label: '微信'
+      },{
+        value: '0',
+        label: '未支付'
+      }],
     }
   },
   created() {
     //调用列表方法
     this.fetchData()
+    this.sysUser.update_user = this.id
+    console.log(this.sysUser.update_user)
+  },
+  computed: {
+    ...mapGetters([
+      'name',
+      'id',
+    ])
   },
   methods:{
+    filterTag(value, row) {
+      return row.payMethod === value;
+    },
     handleSizeChange (val) {
       this.limit = val
       this.fetchData();
@@ -209,18 +260,20 @@ export default {
       }
     },
     save(){
+      this.sysUser.updateUser = this.id
       api.save(this.sysUser)
-         .then(response=>{
-           //提示信息
-           this.$message.success('操作成功')
-           //关闭弹框
-           this.dialogVisible = false
-           //刷新页面
-           this.fetchData()
-         })
+        .then(response=>{
+          //提示信息
+          this.$message.success('操作成功')
+          //关闭弹框
+          this.dialogVisible = false
+          //刷新页面
+          this.fetchData()
+        })
     },
     update(){
-      api.updateById(this.sysUser).then(response=>{
+      this.sysUser.updateUser = this.id
+      api.update(this.sysUser).then(response=>{
         //提示信息
         this.$message.success('操作成功')
         //关闭弹框
@@ -231,9 +284,16 @@ export default {
     },
     edit(id){
       this.dialogVisible = true
-      api.getById(id).then(response=>{
-       this.sysUser = response.data
+      this.addUser = false
+      api.getCategoryId(id).then(response=>{
+        console.log(response.data)
+        this.sysUser = response.data
+        console.log(response.data)
+        // this.sysUser.update_user = this.id
       })
+      // apiSysUser.getById(id).then(response=>{
+      //   this.sysUser = response.data
+      // })
     },
     removeDataById(id){
       this.$confirm('此操作将永久删除该用户, 是否继续?', '提示', {
@@ -258,17 +318,31 @@ export default {
         }
       })
     },
-    //展示分配角色
-    showAssignRole (row) {
-      this.sysUser = row
-      this.dialogRoleVisible = true
-      roleApi.getRolesByUserId(row.id).then(response => {
-        this.allRoles = response.data.allRoles
-        this.userRoleIds = response.data.userRoleIds
-        this.checkAll = this.userRoleIds.length===this.allRoles.length
-        this.isIndeterminate = this.userRoleIds.length>0 && this.userRoleIds.length<this.allRoles.length
-      })
-    },
+    //批量删除
+    // batchRemove(){
+    //   if (this.selectValue.length == 0){
+    //     this.$message.warning( '请选择要删除记录')
+    //     return
+    //   }else {
+    //     this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+    //       confirmButtonText: '确定',
+    //       cancelButtonText: '取消',
+    //       type: 'warning'
+    //     }).then(() => {
+    //       var idList = []
+    //       for (var i = 0;i<this.selectValue.length;i++){
+    //         var obj = this.selectValue[i]
+    //         var id = obj.id
+    //         idList.push(id)
+    //       }
+    //       api.batchRemove(idList).then(response=>{
+    //         this.fetchData(this.page)
+    //         this.$message.success(response.message || '删除成功')
+    //       })
+    //     })
+    //   }
+    // },
+
 
     /*
     全选勾选状态发生改变的监听
@@ -278,32 +352,7 @@ export default {
       this.userRoleIds = value ? this.allRoles.map(item => item.id) : []
       // 如果当前不是全选也不全不选时, 指定为false
       this.isIndeterminate = false
-    },
-
-    /*
-    角色列表选中项发生改变的监听
-    */
-    handleCheckedChange (value) {
-      const {userRoleIds, allRoles} = this
-      this.checkAll = userRoleIds.length === allRoles.length && allRoles.length>0
-      this.isIndeterminate = userRoleIds.length>0 && userRoleIds.length<allRoles.length
-    },
-
-    //分配角色
-    assignRole () {
-      let assginRoleVo = {
-        userId: this.sysUser.id,
-        roleIdList: this.userRoleIds
-      }
-      roleApi.assignRoles(assginRoleVo).then(response => {
-        this.$message.success(response.message || '分配角色成功')
-        this.dialogRoleVisible = false
-        this.fetchData(this.page)
-      })
-    },
-
-
-
+    }
   }
 }
 
@@ -316,5 +365,8 @@ export default {
 .tools-div {
   margin-top: 10px;padding:10px;border: 1px solid #EBEEF5;border-radius:3px;
 }
-
+.pageList {
+  text-align: center;
+  margin-top: 30px;
+}
 </style>

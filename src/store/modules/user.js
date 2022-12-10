@@ -7,6 +7,7 @@ const getDefaultState = () => {
     token: getToken(),
     name: '',
     avatar: '',
+    id:'',
 
     buttons: [], // 新增
     menus: '' //新增
@@ -24,6 +25,9 @@ const mutations = {
   },
   SET_NAME: (state, name) => {
     state.name = name
+  },
+  SET_ID: (state,id)=>{
+    state.id = id
   },
   SET_AVATAR: (state, avatar) => {
     state.avatar = avatar
@@ -45,6 +49,7 @@ const actions = {
     return new Promise((resolve, reject) => {
       login({ username: username.trim(), password: password }).then(response => {
         const { data } = response
+        localStorage.setItem("token",data.token)
         commit('SET_TOKEN', data.token)
         setToken(data.token)
         resolve()
@@ -64,10 +69,11 @@ const actions = {
           return reject('Verification failed, please Login again.')
         }
 
-        const { name, avatar } = data
+        const { name, avatar ,id} = data
 
         commit('SET_NAME', name)
         commit('SET_AVATAR', avatar)
+        commit("SET_ID",id)
 
         commit("SET_BUTTONS", data.buttons)
         commit("SET_MENUS", data.routers)
