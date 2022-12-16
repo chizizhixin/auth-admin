@@ -6,7 +6,7 @@
         <el-row>
           <el-col :span="8">
             <el-form-item label="关 键 字">
-              <el-input style="width: 95%" v-model="searchObj.keyword" placeholder="分类"></el-input>
+              <el-input style="width: 95%" v-model="searchObj.keyword" placeholder="订单号/用户名"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -32,7 +32,7 @@
 
     <!-- 工具条 -->
     <div class="tools-div">
-      <el-button type="success" icon="el-icon-plus" size="mini"  @click="add">添 加</el-button>
+      <el-button class="btn-add" size="mini" @click="batchRemove()" >批量删除</el-button>
     </div>
 
     <!-- 列表 -->
@@ -41,8 +41,9 @@
       :data="list"
       stripe
       border
-      style=" width: 100%; margin-top: 10px;">
-
+      style=" width: 100%; margin-top: 10px;"
+      @selection-change="handleSelectionChange">
+      <el-table-column type="selection"/>
       <el-table-column
         label="序号"
         width="70"
@@ -73,7 +74,26 @@
             disable-transitions>支付宝</el-tag>
         </template>
       </el-table-column>
-
+      <el-table-column
+        prop="status"
+        label="订单状态"
+        width="150"
+        :filters="[{ text: '待付款', value: 1 },{ text: '待派送', value: 2 }, { text: '已派送', value: 3 },{ text: '已完成', value: 4 },{ text: '已取消', value: 5 }]"
+        :filter-method="filterTagStatus"
+        filter-placement="bottom-end">
+        <template slot-scope="scope">
+          <el-tag type="primary" v-if="scope.row.status === 1"
+            disable-transitions>待付款</el-tag>
+          <el-tag type="success" v-if="scope.row.status === 2"
+            disable-transitions>待派送</el-tag>
+          <el-tag type="info" v-if="scope.row.status === 3"
+            disable-transitions>已派送</el-tag>
+          <el-tag type="warning" v-if="scope.row.status === 4"
+          disable-transitions>已完成</el-tag>
+          <el-tag type="danger" v-if="scope.row.status === 5"
+            disable-transitions>已取消</el-tag>
+        </template>
+      </el-table-column>
       <!--      <el-table-column prop="image" label="图片" align="center">-->
       <!--        <template slot-scope="{ row }">-->
       <!--          <el-image style="width: auto; height: 40px; border:none;cursor: pointer;"-->
@@ -103,20 +123,21 @@
       <!--      </el-table-column>-->
       <!--      <el-table-column prop="createUser" label="创建人" width="110" />-->
       <!--      <el-table-column prop="updateUser" label="修改人" width="110" />-->
-      <el-table-column label="状态" width="120">
-        <template slot-scope="scope">
-          <el-switch
-            v-model="scope.row.status === 1"
-            @change="switchStatus(scope.row)">
-          </el-switch>
-        </template>
-      </el-table-column>
+<!--      <el-table-column label="状态" width="120">-->
+<!--        <template slot-scope="scope">-->
+<!--          <el-switch-->
+<!--            v-model="scope.row.status === 1"-->
+<!--            @change="switchStatus(scope.row)">-->
+<!--          </el-switch>-->
+<!--        </template>-->
+<!--      </el-table-column>-->
       <el-table-column prop="createTime" label="创建时间" width="165px" />
       <el-table-column prop="updateTime" label="修改时间" width="165px" />
       <el-table-column label="操作"  align="center" fixed="right">
         <template slot-scope="scope">
           <el-button type="primary" icon="el-icon-edit" size="mini" @click="edit(scope.row.id)" title="修改"/>
           <el-button type="danger" icon="el-icon-delete" size="mini" @click="removeDataById(scope.row.id)" title="删除" />
+          <el-button type="warning" icon="el-icon-baseball" size="mini" @click="showOrdersDeail(scope.row.id)" title="订单详情"/>
         </template>
       </el-table-column>
     </el-table>
@@ -133,19 +154,62 @@
     ></el-pagination>
     <el-dialog title="添加/修改" :visible.sync="dialogVisible" width="40%" >
       <el-form ref="dataForm" :model="sysUser"  label-width="100px" size="small" style="padding-right: 40px;">
-        <el-form-item label="类型名称" prop="name">
-          <el-input v-model="sysUser.name"/>
+        <el-form-item label="订单号" prop="number">
+          <el-input v-model="sysUser.number"/>
+        </el-form-item>
+        <el-form-item label="电话" prop="phone">
+          <el-input v-model="sysUser.phone"/>
+        </el-form-item>
+        <el-form-item label="用户名" prop="userName">
+          <el-input v-model="sysUser.userName"/>
         </el-form-item>
         <el-form-item label="类型">
-          <el-select v-model="sysUser.type" placeholder="请选择类型">
-            <el-option label="菜品" value="1"></el-option>
-            <el-option label="套餐" value="2"></el-option>
+          <el-select v-model="sysUser.status" placeholder="请选择类型">
+            <el-option label="待付款" value="1"></el-option>
+            <el-option label="待派送" value="2"></el-option>
+            <el-option label="已派送" value="3"></el-option>
+            <el-option label="已完成" value="4"></el-option>
+            <el-option label="已取消" value="5"></el-option>
           </el-select>
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
         <el-button @click="dialogVisible = false" size="small" icon="el-icon-refresh-right">取 消</el-button>
         <el-button type="primary" icon="el-icon-check" @click="saveOrUpdate()" size="small">确 定</el-button>
+      </span>
+    </el-dialog>
+    <el-dialog title="详情" :visible.sync="dialogVisible2" width="40%" >
+      <el-form ref="dataForm" :model="orders"  label-width="100px" size="small" style="padding-right: 40px;">
+        <el-form-item label="菜品名" prop="name">
+          <el-input v-model="orders.name"/>
+        </el-form-item>
+<!--        <el-form-item-->
+<!--          label="菜品图片:"-->
+<!--          prop="image"-->
+<!--          class="uploadImg"-->
+<!--        >-->
+<!--          <el-upload-->
+<!--            class="avatar-uploader"-->
+<!--            :action="uploadUrl"-->
+<!--            :headers="{ 'token': token }"-->
+<!--            :show-file-list="false"-->
+<!--            :on-success="handleAvatarSuccess"-->
+<!--            :before-upload="beforeAvatarUpload"-->
+<!--            ref="upload">-->
+<!--            <img v-if="imageUrl" :src="imageUrl"  class="avatar"alt=""/>-->
+<!--            <i v-else class="el-icon-plus avatar-uploader-icon"></i>-->
+<!--          </el-upload>-->
+<!--        </el-form-item>-->
+        <el-form-item label="数量" prop="number">
+          <el-input v-model="orders.number"/>
+        </el-form-item>
+        <el-form-item label="金额" prop="amount">
+          <el-input v-model="orders.amount"/>
+        </el-form-item>
+      </el-form>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="dialogVisible2 = false" size="small" icon="el-icon-refresh-right">取 消</el-button>
+<!--        <el-button type="primary" icon="el-icon-check" @click="saveOrUpdate()" size="small">确 定</el-button>-->
       </span>
     </el-dialog>
   </div>
@@ -166,6 +230,17 @@ const defaultForm = {
   consignee:'',
   status: '',//订单状态 1待付款，2待派送，3已派送，4已完成，5已取消
 }
+ const ordersDetail = {
+   id:'',
+   name:'',
+   image:'',
+   order_id:'',
+   dish_id:'',
+   setmeal_id:'',
+   dish_flavor:'',
+   number:'',
+   amount:''
+}
 export default {
   data(){
     return{
@@ -178,13 +253,16 @@ export default {
       createTimes: [],
       updateTimes:[],
       dialogVisible: false,
+      dialogVisible2:false,
       sysUser: defaultForm,
+      orders: ordersDetail,
 
       dialogRoleVisible: false,
       allRoles: [], // 所有角色列表
       userRoleIds: [], // 用户的角色ID的列表
       isIndeterminate: false, // 是否是不确定的
       checkAll: false, // 是否全选
+      selectValue:[], //复选框选择的内容封装的数组
       addUser: false,
       options: [{
         value: '2',
@@ -211,8 +289,16 @@ export default {
     ])
   },
   methods:{
+    //复选框发生变化，执行方法
+    handleSelectionChange(selection){
+      this.selectValue = selection
+      // console.log(this.selectValue)
+    },
     filterTag(value, row) {
       return row.payMethod === value;
+    },
+    filterTagStatus(value, row) {
+      return row.status === value;
     },
     handleSizeChange (val) {
       this.limit = val
@@ -273,7 +359,7 @@ export default {
     },
     update(){
       this.sysUser.updateUser = this.id
-      api.update(this.sysUser).then(response=>{
+      api.updateById(this.sysUser).then(response=>{
         //提示信息
         this.$message.success('操作成功')
         //关闭弹框
@@ -285,7 +371,7 @@ export default {
     edit(id){
       this.dialogVisible = true
       this.addUser = false
-      api.getCategoryId(id).then(response=>{
+      api.getById(id).then(response=>{
         console.log(response.data)
         this.sysUser = response.data
         console.log(response.data)
@@ -319,30 +405,38 @@ export default {
       })
     },
     //批量删除
-    // batchRemove(){
-    //   if (this.selectValue.length == 0){
-    //     this.$message.warning( '请选择要删除记录')
-    //     return
-    //   }else {
-    //     this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
-    //       confirmButtonText: '确定',
-    //       cancelButtonText: '取消',
-    //       type: 'warning'
-    //     }).then(() => {
-    //       var idList = []
-    //       for (var i = 0;i<this.selectValue.length;i++){
-    //         var obj = this.selectValue[i]
-    //         var id = obj.id
-    //         idList.push(id)
-    //       }
-    //       api.batchRemove(idList).then(response=>{
-    //         this.fetchData(this.page)
-    //         this.$message.success(response.message || '删除成功')
-    //       })
-    //     })
-    //   }
-    // },
+    batchRemove(){
+      if (this.selectValue.length == 0){
+        this.$message.warning( '请选择要删除记录')
+        return
+      }else {
+        this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          var idList = []
+          for (var i = 0;i<this.selectValue.length;i++){
+            var obj = this.selectValue[i]
+            var id = obj.id
+            idList.push(id)
+          }
+          api.batchRemove(idList).then(response=>{
+            this.fetchData(this.page)
+            this.$message.success(response.message || '删除成功')
+          })
+        })
+      }
+    },
+    showOrdersDeail(id){
+      this.dialogVisible2 = true
+        this.addUser = false
+      apiDetail.getById(id).then(response=>{
+           this.orders = response.data
+        console.log(response.data)
+      })
 
+    },
 
     /*
     全选勾选状态发生改变的监听

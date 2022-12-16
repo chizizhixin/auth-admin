@@ -6,7 +6,7 @@
         <el-row>
           <el-col :span="8">
             <el-form-item label="关 键 字">
-              <el-input style="width: 95%" v-model="searchObj.keyword" placeholder="分类"></el-input>
+              <el-input style="width: 95%" v-model="searchObj.keyword" placeholder="分类名称"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -290,9 +290,8 @@ export default {
 
     // 批量删除
     batchRemove(){
-      if (this.selectValue.length == 0){
+      if (this.selectValue.length === 0){
         this.$message.warning( '请选择要删除记录')
-        return
       }else {
         this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
           confirmButtonText: '确定',

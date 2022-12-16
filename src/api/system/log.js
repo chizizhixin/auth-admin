@@ -66,13 +66,13 @@ export default {
 //     })
 //   },
 //   //批量删除
-//   batchRemove(idList) {
-//     return request({
-//       url: `${api_name}/batchRemove`,
-//       method: `delete`,
-//       data: idList
-//     })
-//   },
+  batchRemove(idList) {
+    return request({
+      url: `${api_name}/batchRemove`,
+      method: `delete`,
+      data: idList
+    })
+  },
 //   //根据用户id查询用户已分配的角色
 //   getRolesByUserId(userId) {
 //     return request({

@@ -33,6 +33,7 @@
     <!-- 工具条 -->
     <div class="tools-div">
       <el-button type="success" icon="el-icon-plus" size="mini"  @click="add">添 加</el-button>
+      <el-button class="btn-add" size="mini" @click="batchRemove()" >批量删除</el-button>
     </div>
 
     <!-- 列表 -->
@@ -41,7 +42,9 @@
       :data="list"
       stripe
       border
-      style="width: 100%;margin-top: 10px;">
+      style="width: 100%;margin-top: 10px;"
+      @selection-change="handleSelectionChange">
+      <el-table-column type="selection"/>
 
       <el-table-column
         label="序号"
@@ -128,6 +131,7 @@
 <script>
 import api from '@/api/system/user'
 import roleApi from '@/api/system/role'
+import loginApi from "@/api/system/loginlog";
 const defaultForm = {
   id: '',
   username: '',
@@ -145,7 +149,7 @@ export default {
       page: 1, // 默认页码
       limit: 10, // 每页记录数
       searchObj: {}, // 查询表单对象
-
+      selectValue:'',
       createTimes: [],
 
       dialogVisible: false,
@@ -163,6 +167,10 @@ export default {
     this.fetchData()
   },
   methods:{
+    handleSelectionChange(selection){
+      this.selectValue = selection
+      // console.log(this.selectValue)
+    },
     handleSizeChange (val) {
       this.limit = val
       this.fetchData();
@@ -268,6 +276,29 @@ export default {
         this.checkAll = this.userRoleIds.length===this.allRoles.length
         this.isIndeterminate = this.userRoleIds.length>0 && this.userRoleIds.length<this.allRoles.length
       })
+    },
+    // 批量删除
+    batchRemove(){
+      if (this.selectValue.length === 0){
+        this.$message.warning( '请选择要删除记录')
+      }else {
+        this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          var idList = []
+          for (var i = 0;i<this.selectValue.length;i++){
+            var obj = this.selectValue[i]
+            var id = obj.id
+            idList.push(id)
+          }
+          api.batchRemove(idList).then(response=>{
+            this.fetchData(this.page)
+            this.$message.success(response.message || '删除成功')
+          })
+        })
+      }
     },
 
     /*

@@ -6,7 +6,7 @@
         <el-row>
           <el-col :span="8">
             <el-form-item label="关 键 字">
-              <el-input style="width: 95%" v-model="searchObj.keyword" placeholder="用户名/姓名/手机号码"></el-input>
+              <el-input style="width: 95%" v-model="searchObj.keyword" placeholder="用户名"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -32,7 +32,7 @@
 
     <!-- 工具条 -->
     <div class="tools-div">
-      <el-button type="success" icon="el-icon-plus" size="mini"  @click="add">添 加</el-button>
+      <el-button class="btn-add" size="mini" @click="batchRemove()" >批量删除</el-button>
     </div>
 
     <!-- 列表 -->
@@ -41,7 +41,9 @@
       :data="list"
       stripe
       border
-      style="width: 100%;margin-top: 10px;">
+      style="width: 100%;margin-top: 10px;"
+      @selection-change="handleSelectionChange">
+      <el-table-column type="selection"/>
 
       <el-table-column
         label="序号"
@@ -138,7 +140,7 @@ export default {
       page: 1, // 默认页码
       limit: 10, // 每页记录数
       searchObj: {}, // 查询表单对象
-
+      selectValue:'',
       createTimes: [],
 
       dialogVisible: false,
@@ -155,6 +157,10 @@ export default {
     this.fetchData()
   },
   methods:{
+    handleSelectionChange(selection){
+      this.selectValue = selection
+      // console.log(this.selectValue)
+    },
     handleSizeChange (val) {
       this.limit = val
       this.fetchData();
@@ -199,6 +205,29 @@ export default {
         this.fetchData(this.page)
         this.$message.success(response.message || '删除成功')
       })
+    },
+    // 批量删除
+    batchRemove(){
+      if (this.selectValue.length === 0){
+        this.$message.warning( '请选择要删除记录')
+      }else {
+        this.$confirm('此操作将永久删除该记录, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          var idList = []
+          for (var i = 0;i<this.selectValue.length;i++){
+            var obj = this.selectValue[i]
+            var id = obj.id
+            idList.push(id)
+          }
+          loginApi.batchRemove(idList).then(response=>{
+            this.fetchData(this.page)
+            this.$message.success(response.message || '删除成功')
+          })
+        })
+      }
     },
   }
 }

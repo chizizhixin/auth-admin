@@ -6,7 +6,7 @@
         <el-row>
           <el-col :span="8">
             <el-form-item label="关 键 字">
-              <el-input style="width: 95%" v-model="searchObj.keyword" placeholder="分类"></el-input>
+              <el-input style="width: 95%" v-model="searchObj.keyword" placeholder="姓名/电话/性别"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="8">

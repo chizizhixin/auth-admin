@@ -16,7 +16,7 @@ export default {
   //根据id获取用户信息
   getById(id) {
     return request({
-      url: `${api_name}/getUser/${id}`,
+      url: `${api_name}/findAll/${id}`,
       method: 'get'
     })
   },
